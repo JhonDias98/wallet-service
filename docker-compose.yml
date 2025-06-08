@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: wallet-service:latest
+    container_name: wallet-service
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/walletdb
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+    depends_on:
+      - postgres
+    networks:
+      - wallet-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:14-alpine
+    container_name: wallet-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=walletdb
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - wallet-network
+    restart: unless-stopped
+
+networks:
+  wallet-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
