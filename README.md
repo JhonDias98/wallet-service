@@ -550,7 +550,7 @@ Once SonarQube is running, you can access the web interface at:
 To analyze your code with SonarQube:
 
 ```bash
-mvn clean test jacoco:report sonar:sonar \
+mvn clean verify sonar:sonar \
   -Dsonar.projectKey=wallet-service \
   -Dsonar.host.url=http://localhost:9000 \
   -Dsonar.login=YOUR_TOKEN_HERE
