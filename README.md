@@ -19,6 +19,7 @@ Approximately 7 hours and 20 minutes.
 - [Testing](#testing)
 - [Design Decisions](#design-decisions)
 - [Trade-offs and Limitations](#trade-offs-and-limitations)
+- [Code Quality and Analysis](#code-quality-and-analysis)
 
 ## Overview
 
@@ -471,3 +472,130 @@ The service does not include built-in monitoring and alerting capabilities. In a
 
 This wallet service implementation provides a solid foundation for managing user funds with high reliability and traceability. It can be extended and enhanced based on specific business requirements and operational needs.
 
+---
+
+## Code Quality and Analysis
+
+### JaCoCo Code Coverage
+
+The project is configured with JaCoCo for code coverage analysis. JaCoCo provides detailed reports on test coverage, helping ensure code quality and identifying areas that need additional testing.
+
+#### Generating Coverage Reports
+
+To generate a code coverage report:
+
+```bash
+mvn clean test jacoco:report
+```
+
+This command will:
+1. Clean the project
+2. Run all tests
+3. Generate a JaCoCo coverage report
+
+The coverage report will be available at:
+- **HTML Report**: `target/site/jacoco/index.html`
+- **XML Report**: `target/site/jacoco/jacoco.xml`
+- **CSV Report**: `target/site/jacoco/jacoco.csv`
+
+#### Coverage Thresholds
+
+The project is configured with minimum coverage thresholds:
+- **Line Coverage**: 70% minimum
+- **Branch Coverage**: 60% minimum
+
+If the coverage falls below these thresholds, the build will fail. You can adjust these thresholds in the `pom.xml` file under the JaCoCo plugin configuration.
+
+#### Viewing Coverage Reports
+
+1. After running the coverage command, open the HTML report:
+   ```bash
+   open target/site/jacoco/index.html
+   ```
+   Or navigate to the file in your browser.
+
+2. The report provides:
+    - Overall coverage statistics
+    - Package-level coverage breakdown
+    - Class-level coverage details
+    - Line-by-line coverage highlighting
+
+### SonarQube Code Quality Analysis
+
+SonarQube is integrated for comprehensive code quality analysis, including code smells, bugs, vulnerabilities, and technical debt assessment.
+
+#### Starting SonarQube (Manual)
+
+To start SonarQube manually using Docker:
+
+```bash
+docker run -d --name sonarqube -p 9000:9000 sonarqube:latest
+```
+
+#### Accessing SonarQube Interface
+
+Once SonarQube is running, you can access the web interface at:
+- **URL**: http://localhost:9000
+- **Default Username**: `admin`
+- **Default Password**: `admin`
+
+**First-time Setup**:
+1. Navigate to http://localhost:9000
+2. Log in with `admin/admin`
+3. You'll be prompted to change the default password
+4. [Follow the setup wizard to configure your instance](https://docs.sonarqube.org/latest/setup/get-started-2-minutes/)
+
+#### Running Code Analysis
+
+To analyze your code with SonarQube:
+
+```bash
+mvn clean test jacoco:report sonar:sonar \
+  -Dsonar.projectKey=wallet-service \
+  -Dsonar.host.url=http://localhost:9000 \
+  -Dsonar.login=YOUR_TOKEN_HERE
+```
+
+This command will:
+1. Clean the project
+2. Run all tests
+3. Generate JaCoCo coverage report
+4. Send the analysis results to SonarQube
+
+#### Viewing Analysis Results
+
+1. After running the analysis, go to http://localhost:9000
+2. You'll see your project listed on the dashboard
+3. Click on the project to view detailed analysis results including:
+    - **Overview**: Summary of issues, coverage, and duplications
+    - **Issues**: Detailed list of bugs, vulnerabilities, and code smells
+    - **Measures**: Metrics like lines of code, complexity, and coverage
+    - **Code**: Source code browser with issue annotations
+    - **Activity**: History of analysis runs and trends
+
+#### Understanding SonarQube Metrics
+
+- **Bugs**: Issues that represent mistakes in the code
+- **Vulnerabilities**: Security-related issues
+- **Code Smells**: Maintainability issues
+- **Coverage**: Test coverage percentage
+- **Duplications**: Duplicated code blocks
+- **Technical Debt**: Estimated time to fix all maintainability issues
+
+#### Quality Gates
+
+SonarQube uses Quality Gates to define the criteria for code quality. The default Quality Gate includes:
+- No new bugs
+- No new vulnerabilities
+- No new security hotspots
+- Coverage on new code ≥ 80%
+- Duplicated lines on new code < 3%
+
+
+### Best Practices for Code Quality
+
+1. **Regular Analysis**: Run code analysis regularly during development
+2. **Fix Issues Early**: Address issues as they're identified rather than accumulating technical debt
+3. **Review Coverage**: Aim for high test coverage, especially for critical business logic
+4. **Monitor Trends**: Use SonarQube's historical data to track code quality trends
+5. **Team Standards**: Establish team standards for acceptable quality gate criteria
