@@ -12,7 +12,6 @@ import com.wallet.service.model.Wallet;
 import com.wallet.service.repository.TransactionRepository;
 import com.wallet.service.repository.WalletRepository;
 import com.wallet.service.service.WalletService;
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +35,6 @@ public class WalletServiceImpl implements WalletService {
 
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
-    private final EntityManager entityManager;
 
     @Override
     @Transactional
