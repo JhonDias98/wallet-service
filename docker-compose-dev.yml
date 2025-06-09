@@ -15,6 +15,28 @@ services:
       - wallet-network-dev
     restart: unless-stopped
 
+  notification:
+    build:
+      context: ./notificarion-service
+      dockerfile: Dockerfile
+    image: notificarion-service:latest
+    container_name: notificarion-service-dev
+    depends_on:
+      - rabbitmq
+    networks:
+      - wallet-network-dev
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-dev
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    networks:
+      - wallet-network-dev
+    restart: unless-stopped
+
 networks:
   wallet-network-dev:
     driver: bridge

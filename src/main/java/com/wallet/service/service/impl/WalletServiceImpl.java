@@ -12,6 +12,8 @@ import com.wallet.service.model.Wallet;
 import com.wallet.service.repository.TransactionRepository;
 import com.wallet.service.repository.WalletRepository;
 import com.wallet.service.service.WalletService;
+import com.wallet.service.messaging.NotificationMessage;
+import com.wallet.service.messaging.NotificationPublisher;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +37,7 @@ public class WalletServiceImpl implements WalletService {
 
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
+    private final NotificationPublisher notificationPublisher;
 
     @Override
     @Transactional
@@ -117,8 +120,17 @@ public class WalletServiceImpl implements WalletService {
             transaction.setBalanceAfter(wallet.getBalance());
             Transaction savedTransaction = transactionRepository.save(transaction);
             transactionRepository.flush();
-            
+
             log.info("Deposit completed successfully. Transaction ID: {}", savedTransaction.getId());
+
+            notificationPublisher.publish(new NotificationMessage(
+                    wallet.getUserId(),
+                    wallet.getId(),
+                    TransactionType.DEPOSIT.name(),
+                    request.getAmount(),
+                    savedTransaction.getReferenceId(),
+                    request.getDescription()));
+
             return mapToTransactionResponse(savedTransaction);
         } catch (Exception e) {
             log.error("Deposit failed", e);
@@ -157,6 +169,15 @@ public class WalletServiceImpl implements WalletService {
             transactionRepository.flush();
             
             log.info("Withdrawal completed successfully. Transaction ID: {}", savedTransaction.getId());
+
+            notificationPublisher.publish(new NotificationMessage(
+                    wallet.getUserId(),
+                    wallet.getId(),
+                    TransactionType.WITHDRAWAL.name(),
+                    request.getAmount(),
+                    savedTransaction.getReferenceId(),
+                    request.getDescription()));
+
             return mapToTransactionResponse(savedTransaction);
         } catch (Exception e) {
             log.error("Withdrawal failed", e);
@@ -215,7 +236,23 @@ public class WalletServiceImpl implements WalletService {
             Transaction savedDestinationTransaction = transactionRepository.save(destinationTransaction);
             
             log.info("Transfer completed successfully. Reference ID: {}", referenceId);
-            
+
+            notificationPublisher.publish(new NotificationMessage(
+                    sourceWallet.getUserId(),
+                    sourceWallet.getId(),
+                    TransactionType.TRANSFER_OUT.name(),
+                    request.getAmount(),
+                    referenceId,
+                    request.getDescription()));
+
+            notificationPublisher.publish(new NotificationMessage(
+                    destinationWallet.getUserId(),
+                    destinationWallet.getId(),
+                    TransactionType.TRANSFER_IN.name(),
+                    request.getAmount(),
+                    referenceId,
+                    request.getDescription()));
+
             List<TransactionResponse> responses = new ArrayList<>();
             responses.add(mapToTransactionResponse(savedSourceTransaction));
             responses.add(mapToTransactionResponse(savedDestinationTransaction));

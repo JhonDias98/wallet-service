@@ -30,6 +30,7 @@ This Wallet Service is a critical component designed to manage user funds with h
 - Depositing funds into wallets
 - Withdrawing funds from wallets
 - Transferring funds between wallets
+- Notifying users of transactions via RabbitMQ
 
 The service is built with Java 17 and Spring Boot 3.5.0, following best practices for production-ready applications.
 
@@ -149,6 +150,17 @@ This project uses `SpringDoc OpenAPI` to automatically generate interactive API 
    http://localhost:8080/v3/api-docs
    ```
 - ⚠️ Important: Swagger UI is disabled by default in production for security reasons.
+
+## Notification Service
+
+Transactions generate messages on RabbitMQ. The separate **notificarion-service**
+listens to these messages and logs a notification for the users involved in each
+operation. Both sender and receiver of a transfer are notified.
+
+- Queue: `wallet.notification.queue`
+- Exchange: `wallet.notification.exchange`
+- Routing Key: `wallet.notification.key`
+
 
 ## API Documentation
 
@@ -388,6 +400,7 @@ The service is designed as a standalone Spring Boot application that can be depl
 - **API**: Spring Web, SpringDoc OpenAPI 2.7.0.
 - **Testing**: JUnit 5, Mockito, Spring Boot Test.
 - **Containerization**: Docker and Docker Compose.
+- **Messaging**: RabbitMQ for transaction notifications.
 
 ### Data Model Design
 
