@@ -31,11 +31,11 @@ This Wallet Service is a critical component designed to manage user funds with h
 - Withdrawing funds from wallets
 - Transferring funds between wallets
 
-The service is built with Java 17 and Spring Boot 3.5.0, following best practices for production-ready applications.
+The service is built with Java 21 and Spring Boot 3.5.0, following best practices for production-ready applications.
 
 ## Requirements
 
-- Java 17 or higher
+- Java 21 or higher
 - Maven 3.6 or higher
 - Docker and Docker Compose (optional, for containerized deployment)
 
