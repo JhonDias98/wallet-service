@@ -2,30 +2,19 @@ package com.wallet.service.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class TransferRequest {
-    
-    @NotNull(message = "Source wallet ID is required")
-    private UUID sourceWalletId;
-    
-    @NotNull(message = "Destination wallet ID is required")
-    private UUID destinationWalletId;
-    
-    @NotNull(message = "Amount is required")
-    @Positive(message = "Amount must be positive")
-    private BigDecimal amount;
-    
-    private String description;
+/**
+ * Request object for transfer operations between wallets.
+ */
+public record TransferRequest(
+        @NotNull(message = "Source wallet ID is required") UUID sourceWalletId,
+        @NotNull(message = "Destination wallet ID is required") UUID destinationWalletId,
+        @NotNull(message = "Amount is required")
+        @Positive(message = "Amount must be positive") BigDecimal amount,
+        String description
+) {
 }
 

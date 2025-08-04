@@ -25,9 +25,9 @@ public class WalletController {
 
     @PostMapping
     public ResponseEntity<WalletResponse> createWallet(@Valid @RequestBody CreateWalletRequest request) {
-        log.info("REST request to create wallet for user ID: {}", request.getUserId());
+        log.info("REST request to create wallet for user ID: {}", request.userId());
         WalletResponse response = walletService.createWallet(request);
-        return ResponseEntity.created(buildURI(response.getId())).body(response);
+        return ResponseEntity.created(buildURI(response.id())).body(response);
     }
 
     @GetMapping("/{walletId}/balance")
@@ -50,8 +50,8 @@ public class WalletController {
     public ResponseEntity<TransactionResponse> deposit(
             @PathVariable UUID walletId,
             @Valid @RequestBody DepositRequest request) {
-        log.info("REST request to deposit {} to wallet ID: {}", request.getAmount(), walletId);
-        TransactionResponse response = walletService.deposit(walletId, request);
+        log.info("REST request to deposit {} to wallet ID: {}", request.amount(), walletId);
+        TransactionResponse response = walletService.processOperation(walletId, request);
         return ResponseEntity.ok(response);
     }
 
@@ -59,15 +59,15 @@ public class WalletController {
     public ResponseEntity<TransactionResponse> withdraw(
             @PathVariable UUID walletId,
             @Valid @RequestBody WithdrawalRequest request) {
-        log.info("REST request to withdraw {} from wallet ID: {}", request.getAmount(), walletId);
-        TransactionResponse response = walletService.withdraw(walletId, request);
+        log.info("REST request to withdraw {} from wallet ID: {}", request.amount(), walletId);
+        TransactionResponse response = walletService.processOperation(walletId, request);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/transfer")
     public ResponseEntity<List<TransactionResponse>> transfer(@Valid @RequestBody TransferRequest request) {
         log.info("REST request to transfer {} from wallet ID: {} to wallet ID: {}",
-                request.getAmount(), request.getSourceWalletId(), request.getDestinationWalletId());
+                request.amount(), request.sourceWalletId(), request.destinationWalletId());
         List<TransactionResponse> responses = walletService.transfer(request);
         return ResponseEntity.ok(responses);
     }

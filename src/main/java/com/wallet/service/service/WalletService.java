@@ -14,9 +14,10 @@ public interface WalletService {
 
     BalanceResponse getHistoricalBalance(UUID walletId, Instant timestamp);
 
-    TransactionResponse deposit(UUID walletId, DepositRequest request);
-
-    TransactionResponse withdraw(UUID walletId, WithdrawalRequest request);
+    /**
+     * Process a deposit or withdrawal using pattern matching for switch.
+     */
+    TransactionResponse processOperation(UUID walletId, WalletOperation request);
 
     List<TransactionResponse> transfer(TransferRequest request);
 

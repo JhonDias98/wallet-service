@@ -11,6 +11,7 @@ import com.wallet.service.model.TransactionType;
 import com.wallet.service.model.Wallet;
 import com.wallet.service.repository.TransactionRepository;
 import com.wallet.service.repository.WalletRepository;
+import com.wallet.service.service.NotificationService;
 import com.wallet.service.service.WalletService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -35,18 +36,19 @@ public class WalletServiceImpl implements WalletService {
 
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
     public WalletResponse createWallet(CreateWalletRequest request) {
-        log.info("Creating wallet for user ID: {}", request.getUserId());
+        log.info("Creating wallet for user ID: {}", request.userId());
 
-        if (walletRepository.existsByUserId(request.getUserId())) {
-            throw new WalletAlreadyExistsException("Wallet already exists for user ID: " + request.getUserId());
+        if (walletRepository.existsByUserId(request.userId())) {
+            throw new WalletAlreadyExistsException("Wallet already exists for user ID: " + request.userId());
         }
-        
+
         Wallet wallet = Wallet.builder()
-                .userId(request.getUserId())
+                .userId(request.userId())
                 .balance(BigDecimal.ZERO)
                 .build();
 
@@ -63,12 +65,12 @@ public class WalletServiceImpl implements WalletService {
         log.info("Getting current balance for wallet ID: {}", walletId);
         
         Wallet wallet = getWalletById(walletId);
-        
-        return BalanceResponse.builder()
-                .walletId(wallet.getId())
-                .balance(wallet.getBalance())
-                .timestamp(Instant.now())
-                .build();
+
+        return new BalanceResponse(
+                wallet.getId(),
+                wallet.getBalance(),
+                Instant.now()
+        );
     }
 
     @Override
@@ -77,47 +79,55 @@ public class WalletServiceImpl implements WalletService {
         
         getWalletById(walletId);
 
-        Optional<Transaction> latestTransaction = transactionRepository.findLatestTransactionBeforeTimestamp(walletId, timestamp);
-        
+        Optional<Transaction> latestTransaction = transactionRepository
+                .findLatestTransactionBeforeTimestamp(walletId, timestamp);
+
         if (latestTransaction.isPresent()) {
-            return BalanceResponse.builder()
-                    .walletId(walletId)
-                    .balance(latestTransaction.get().getBalanceAfter())
-                    .timestamp(timestamp)
-                    .build();
+            return new BalanceResponse(
+                    walletId,
+                    latestTransaction.get().getBalanceAfter(),
+                    timestamp
+            );
         } else {
-            return BalanceResponse.builder()
-                    .walletId(walletId)
-                    .balance(BigDecimal.ZERO)
-                    .timestamp(timestamp)
-                    .build();
+            return new BalanceResponse(
+                    walletId,
+                    BigDecimal.ZERO,
+                    timestamp
+            );
         }
     }
 
     @Override
     @Transactional
-    public TransactionResponse deposit(UUID walletId, DepositRequest request) {
-        log.info("Depositing {} to wallet ID: {}", request.getAmount(), walletId);
-        
+    public TransactionResponse processOperation(UUID walletId, WalletOperation request) {
+        return switch (request) {
+            case DepositRequest deposit -> deposit(walletId, deposit);
+            case WithdrawalRequest withdrawal -> withdraw(walletId, withdrawal);
+        };
+    }
+
+    private TransactionResponse deposit(UUID walletId, DepositRequest request) {
+        log.info("Depositing {} to wallet ID: {}", request.amount(), walletId);
+
         Wallet wallet = getWalletById(walletId);
 
         Transaction transaction = Transaction.builder()
                 .walletId(walletId)
                 .type(TransactionType.DEPOSIT)
-                .amount(request.getAmount())
+                .amount(request.amount())
                 .status(TransactionStatus.PENDING)
-                .description(request.getDescription())
+                .description(request.description())
                 .build();
-        
+
         try {
-            wallet.setBalance(wallet.getBalance().add(request.getAmount()));
+            wallet.setBalance(wallet.getBalance().add(request.amount()));
             walletRepository.save(wallet);
 
             transaction.setStatus(TransactionStatus.COMPLETED);
             transaction.setBalanceAfter(wallet.getBalance());
             Transaction savedTransaction = transactionRepository.save(transaction);
             transactionRepository.flush();
-            
+
             log.info("Deposit completed successfully. Transaction ID: {}", savedTransaction.getId());
             return mapToTransactionResponse(savedTransaction);
         } catch (Exception e) {
@@ -128,34 +138,32 @@ public class WalletServiceImpl implements WalletService {
         }
     }
 
-    @Override
-    @Transactional
-    public TransactionResponse withdraw(UUID walletId, WithdrawalRequest request) {
-        log.info("Withdrawing {} from wallet ID: {}", request.getAmount(), walletId);
-        
+    private TransactionResponse withdraw(UUID walletId, WithdrawalRequest request) {
+        log.info("Withdrawing {} from wallet ID: {}", request.amount(), walletId);
+
         Wallet wallet = getWalletById(walletId);
 
-        if (wallet.getBalance().compareTo(request.getAmount()) < 0) {
+        if (wallet.getBalance().compareTo(request.amount()) < 0) {
             throw new InsufficientFundsException("Insufficient funds in wallet ID: " + walletId);
         }
 
         Transaction transaction = Transaction.builder()
                 .walletId(walletId)
                 .type(TransactionType.WITHDRAWAL)
-                .amount(request.getAmount())
+                .amount(request.amount())
                 .status(TransactionStatus.PENDING)
-                .description(request.getDescription())
+                .description(request.description())
                 .build();
-        
+
         try {
-            wallet.setBalance(wallet.getBalance().subtract(request.getAmount()));
+            wallet.setBalance(wallet.getBalance().subtract(request.amount()));
             walletRepository.save(wallet);
 
             transaction.setStatus(TransactionStatus.COMPLETED);
             transaction.setBalanceAfter(wallet.getBalance());
             Transaction savedTransaction = transactionRepository.save(transaction);
             transactionRepository.flush();
-            
+
             log.info("Withdrawal completed successfully. Transaction ID: {}", savedTransaction.getId());
             return mapToTransactionResponse(savedTransaction);
         } catch (Exception e) {
@@ -169,34 +177,34 @@ public class WalletServiceImpl implements WalletService {
     @Override
     @Transactional
     public List<TransactionResponse> transfer(TransferRequest request) {
-        log.info("Transferring {} from wallet ID: {} to wallet ID: {}", 
-                request.getAmount(), request.getSourceWalletId(), request.getDestinationWalletId());
+        log.info("Transferring {} from wallet ID: {} to wallet ID: {}",
+                request.amount(), request.sourceWalletId(), request.destinationWalletId());
 
-        Wallet sourceWallet = getWalletById(request.getSourceWalletId());
-        Wallet destinationWallet = getWalletById(request.getDestinationWalletId());
+        Wallet sourceWallet = getWalletById(request.sourceWalletId());
+        Wallet destinationWallet = getWalletById(request.destinationWalletId());
 
-        if (sourceWallet.getBalance().compareTo(request.getAmount()) < 0) {
-            throw new InsufficientFundsException("Insufficient funds in source wallet ID: " + request.getSourceWalletId());
+        if (sourceWallet.getBalance().compareTo(request.amount()) < 0) {
+            throw new InsufficientFundsException("Insufficient funds in source wallet ID: " + request.sourceWalletId());
         }
 
         UUID referenceId = UUID.randomUUID();
 
         Transaction sourceTransaction = Transaction.builder()
-                .walletId(request.getSourceWalletId())
+                .walletId(request.sourceWalletId())
                 .type(TransactionType.TRANSFER_OUT)
-                .amount(request.getAmount())
+                .amount(request.amount())
                 .status(TransactionStatus.PENDING)
                 .referenceId(referenceId)
-                .description(request.getDescription())
+                .description(request.description())
                 .build();
 
         Transaction destinationTransaction = Transaction.builder()
-                .walletId(request.getDestinationWalletId())
+                .walletId(request.destinationWalletId())
                 .type(TransactionType.TRANSFER_IN)
-                .amount(request.getAmount())
+                .amount(request.amount())
                 .status(TransactionStatus.PENDING)
                 .referenceId(referenceId)
-                .description(request.getDescription())
+                .description(request.description())
                 .build();
         
         try {
@@ -213,9 +221,10 @@ public class WalletServiceImpl implements WalletService {
             destinationTransaction.setStatus(TransactionStatus.COMPLETED);
             destinationTransaction.setBalanceAfter(destinationWallet.getBalance());
             Transaction savedDestinationTransaction = transactionRepository.save(destinationTransaction);
-            
+
             log.info("Transfer completed successfully. Reference ID: {}", referenceId);
-            
+            notificationService.sendTransferNotification(request);
+
             List<TransactionResponse> responses = new ArrayList<>();
             responses.add(mapToTransactionResponse(savedSourceTransaction));
             responses.add(mapToTransactionResponse(savedDestinationTransaction));
@@ -250,27 +259,27 @@ public class WalletServiceImpl implements WalletService {
     }
     
     private WalletResponse mapToWalletResponse(Wallet wallet) {
-        return WalletResponse.builder()
-                .id(wallet.getId())
-                .userId(wallet.getUserId())
-                .balance(wallet.getBalance())
-                .createdAt(wallet.getCreatedAt())
-                .updatedAt(wallet.getUpdatedAt())
-                .build();
+        return new WalletResponse(
+                wallet.getId(),
+                wallet.getUserId(),
+                wallet.getBalance(),
+                wallet.getCreatedAt(),
+                wallet.getUpdatedAt()
+        );
     }
-    
+
     private TransactionResponse mapToTransactionResponse(Transaction transaction) {
-        return TransactionResponse.builder()
-                .id(transaction.getId())
-                .walletId(transaction.getWalletId())
-                .type(transaction.getType())
-                .amount(transaction.getAmount())
-                .timestamp(transaction.getTimestamp())
-                .status(transaction.getStatus())
-                .referenceId(transaction.getReferenceId())
-                .description(transaction.getDescription())
-                .balanceAfter(transaction.getBalanceAfter())
-                .build();
+        return new TransactionResponse(
+                transaction.getId(),
+                transaction.getWalletId(),
+                transaction.getType(),
+                transaction.getAmount(),
+                transaction.getTimestamp(),
+                transaction.getStatus(),
+                transaction.getReferenceId(),
+                transaction.getDescription(),
+                transaction.getBalanceAfter()
+        );
     }
 
 }
