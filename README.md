@@ -17,6 +17,7 @@ Approximately 7 hours and 20 minutes.
   - [Docker Mode](#docker-mode)
 - [API Documentation](#api-documentation)
 - [Testing](#testing)
+- [Observability](#observability)
 - [Design Decisions](#design-decisions)
 - [Trade-offs and Limitations](#trade-offs-and-limitations)
 
@@ -366,6 +367,17 @@ The tests cover:
 - API endpoints (integration tests)
 - Edge cases and error handling
 
+## Observability
+
+The service provides built-in observability leveraging the following components:
+
+- **Prometheus** collects metrics exposed by Spring Boot Actuator.
+- **Grafana** offers dashboards and alerting using Prometheus and Loki data sources.
+- **Loki** stores application logs sent through a Logback appender.
+- **Zipkin** receives distributed tracing data produced via Micrometer Tracing.
+
+All of these services are defined in the provided Docker Compose files. After running `docker-compose up`, you can access Grafana at http://localhost:3000 and Zipkin at http://localhost:9411.
+
 ## Design Decisions
 
 ### Architecture Overview
@@ -465,7 +477,7 @@ The current implementation does not include a caching layer. For very high read 
 
 ### Monitoring and Alerting
 
-The service does not include built-in monitoring and alerting capabilities. In a production environment, it would be integrated with monitoring tools (e.g., Prometheus, Grafana) to track performance metrics, health, and generate alerts on anomalies.
+The service includes a basic observability stack with Prometheus, Grafana, Loki and Zipkin configured via Docker Compose. These tools collect metrics, traces and logs from the application, enabling dashboards and alerting rules to be created as needed.
 
 ---
 

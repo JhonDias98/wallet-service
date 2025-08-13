@@ -1,0 +1,14 @@
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+    <appender name="LOKI" class="com.github.loki4j.logback.LokiAppender">
+        <lokiUrl>${LOKI_URL:-http://localhost:3100/loki/api/v1/push}</lokiUrl>
+        <format>json</format>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="LOKI"/>
+    </root>
+</configuration>
