@@ -6,19 +6,20 @@ services:
       context: .
       dockerfile: wallet-service/Dockerfile
     image: wallet-service:latest
-    container_name: wallet-service
+    container_name: wallet-service-dev
     ports:
       - "8080:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/walletdb
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=test
+      - SPRING_RABBITMQ_PASSWORD=test
     depends_on:
-      - postgres
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     networks:
-      - wallet-network
+      - wallet-network-dev
     restart: unless-stopped
 
   notification-service:
@@ -26,49 +27,61 @@ services:
       context: .
       dockerfile: notification-service/Dockerfile
     image: notification-service:latest
-    container_name: notification-service
+    container_name: notification-service-dev
     ports:
       - "8081:8081"
     environment:
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=test
+      - SPRING_RABBITMQ_PASSWORD=test
+      - MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=false
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     networks:
-      - wallet-network
+      - wallet-network-dev
     restart: unless-stopped
 
-  postgres:
-    image: postgres:14-alpine
-    container_name: wallet-postgres
+  payment-service:
+    build:
+      context: .
+      dockerfile: payment-service/Dockerfile
+    image: payment-service:latest
+    container_name: payment-service-dev
     ports:
-      - "5432:5432"
+      - "8082:8082"
     environment:
-      - POSTGRES_DB=walletdb
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=test
+      - SPRING_RABBITMQ_PASSWORD=test
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     networks:
-      - wallet-network
+      - wallet-network-dev
     restart: unless-stopped
 
   rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: wallet-rabbit
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq-dev
     ports:
       - "5672:5672"
       - "15672:15672"
     environment:
       - RABBITMQ_DEFAULT_USER=test
       - RABBITMQ_DEFAULT_PASS=test
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
     networks:
-      - wallet-network
+      - wallet-network-dev
     restart: unless-stopped
 
 networks:
-  wallet-network:
+  wallet-network-dev:
     driver: bridge
-
-volumes:
-  postgres-data:
