@@ -8,7 +8,6 @@ import com.ada.tech.wallet.dto.TransferRequest;
 import com.ada.tech.wallet.dto.WalletResponse;
 import com.ada.tech.wallet.dto.WithdrawalRequest;
 import com.ada.tech.wallet.service.WalletService;
-import com.wallet.service.dto.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

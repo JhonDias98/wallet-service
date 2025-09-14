@@ -11,7 +11,6 @@ import com.ada.tech.wallet.model.Transaction;
 import com.ada.tech.wallet.model.TransactionStatus;
 import com.ada.tech.wallet.model.TransactionType;
 import com.ada.tech.wallet.model.Wallet;
-import com.wallet.service.dto.*;
 import com.ada.tech.wallet.exception.InsufficientFundsException;
 import com.ada.tech.wallet.exception.TransactionFailedException;
 import com.ada.tech.wallet.exception.WalletAlreadyExistsException;
