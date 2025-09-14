@@ -1,135 +1,134 @@
 # Wallet Service
 
-A robust wallet service that manages user funds, providing operations for deposit, withdrawal, and transfer of funds between users.
+Um serviço robusto para gerenciar fundos de usuários, oferecendo operações de depósito, saque e transferência entre carteiras.
 
-## Development time
+## Sumário
 
-Approximately 7 hours and 20 minutes.
+- [Visão Geral](#visão-geral)
+- [Requisitos](#requisitos)
+- [Instalação](#instalação)
+- [Execução da Aplicação](#execução-da-aplicação)
+    - [Modo Desenvolvimento (H2)](#modo-desenvolvimento-h2)
+    - [Modo Produção (PostgreSQL)](#modo-produção-postgresql)
+    - [Modo Docker](#modo-docker)
+- [Documentação da API](#documentação-da-api)
+- [Testes](#testes)
+- [Decisões de Projeto](#decisões-de-projeto)
+- [Trade-offs e Limitações](#trade-offs-e-limitações)
+- [Stack Tecnológica](#stack-tecnológica)
+- [Modelo de Dados](#modelo-de-dados)
+- [Integridade Transacional e Concorrência](#integridade-transacional-e-concorrência)
+- [Tratamento de Erros e Validação](#tratamento-de-erros-e-validação)
+- [Rastreabilidade e Auditoria](#rastreabilidade-e-auditoria)
+- [Configuração Docker](#configuração-docker)
+- [Notas de Documentação](#notas-de-documentação)
 
-## Table of Contents
+## Visão Geral
 
-- [Overview](#overview)
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Running the Application](#running-the-application)
-  - [Development Mode (H2)](#development-mode-h2)
-  - [Production Mode (PostgreSQL)](#production-mode-postgresql)
-  - [Docker Mode](#docker-mode)
-- [API Documentation](#api-documentation)
-- [Testing](#testing)
-- [Design Decisions](#design-decisions)
-- [Trade-offs and Limitations](#trade-offs-and-limitations)
+O Serviço de Carteira é um componente crítico para gestão de fundos de usuários com alta confiabilidade e rastreabilidade. Ele disponibiliza operações para:
 
-## Overview
+- Criação de carteiras para usuários;
+- Consulta de saldos atuais;
+- Consulta de saldo histórico em um instante específico;
+- Depósitos em carteiras;
+- Saques de carteiras;
+- Transferência de fundos entre carteiras.
 
-This Wallet Service is a critical component designed to manage user funds with high reliability and traceability. It provides a comprehensive set of operations for wallet management, including:
+O serviço é construído com Java 21 e Spring Boot 3.4.5 seguindo boas práticas de aplicações prontas para produção.
 
-- Creating wallets for users
-- Querying current wallet balances
-- Querying historical wallet balances at specific points in time
-- Depositing funds into wallets
-- Withdrawing funds from wallets
-- Transferring funds between wallets
+## Requisitos
 
-The service is built with Java 21 and Spring Boot 3.5.0, following best practices for production-ready applications.
+- Java 21 ou superior;
+- Maven 3.6 ou superior;
+- Docker e Docker Compose (opcionais para execução containerizada).
 
-## Requirements
+## Instalação
 
-- Java 21 or higher
-- Maven 3.6 or higher
-- Docker and Docker Compose (optional, for containerized deployment)
+1. Clone o repositório:
 
-## Installation
+```bash
+git clone https://github.com/JhonDias98/wallet-service.git
+cd wallet-service
+```
 
-1. Clone the repository:
+2. Compile o projeto:
 
-    ```bash
-    git clone https://github.com/JhonDias98/wallet-service.git
-    cd wallet-service
-    ```
+```bash
+mvn clean install
+```
 
-2. Build the application:
+Essa etapa compila o código, executa os testes e empacota a aplicação em um arquivo JAR.
 
-    ```bash
-    mvn clean install
-    ```
+## Execução da Aplicação
 
-This will compile the code, run the tests, and package the application into a JAR file.
+### Modo Desenvolvimento (H2)
 
-## Running the Application
-
-### Development Mode (H2)
-
-For development purposes, the application is configured to use an in-memory H2 database. You can run it directly:
+Para desenvolvimento, a aplicação utiliza um banco de dados em memória H2. Execute:
 
 ```bash
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-Alternatively, you can use the provided script:
+Alternativamente, você pode usar o script fornecido:
 
 ```bash
 ./run-dev.sh
 ```
 
-The application will start on port 8080 by default. You can access the H2 console at http://localhost:8080/h2-console with the following credentials:
+A aplicação iniciará na porta padrão 8080. O console H2 ficará disponível em http://localhost:8080/h2-console com as credenciais:
 - JDBC URL: `jdbc:h2:mem:walletdb`
 - Username: `sa`
 - Password: `password`
 
-### Production Mode (PostgreSQL)
+### Modo Produção (PostgreSQL)
 
-For production deployment, the application is configured to use a PostgreSQL database. You can run it directly:
+Para produção, a aplicação utiliza PostgreSQL. Após compilar, execute:
 
 ```bash
 java -jar -Dspring.profiles.active=prod target/wallet-service-1.0.0-SNAPSHOT.jar
 ```
 
-### Docker Mode
+1. **Pré-requisitos**:
 
-The application can be easily run using Docker and Docker Compose, which will set up the application and the appropriate database based on the selected profile.
+    - Docker e Docker Compose instalados em seu sistema.
+    - Se você estiver usando **Windows** ou **macOS**, certifique-se de que o **Docker Desktop** está instalado e em execução.
+    - Se você estiver usando **Linux**, verifique se o Docker Engine e o Docker Compose estão instalados e se o daemon do Docker está em execução.
+    - Caso esteja em **Linux** ou **WSL (Windows Subsystem for Linux)**, é necessário conceder permissão de execução ao script uma vez:
 
-1. **Prerequisites**:
-
-   - Docker and Docker Compose installed on your system.
-   - If you're using **Windows** or **macOS**, ensure **Docker Desktop** is installed and running.
-   - If you're using **Linux**, make sure the Docker Engine and Docker Compose are installed and the Docker daemon is running.
-   - If you're on **Linux** or **WSL (Windows Subsystem for Linux)**, you need to grant execution permission to the script once:
-  
-     ```bash
-     chmod +x run-docker.sh
-     ```
-2. **Run in Development Mode (H2 Database)**:
+      ```bash
+      chmod +x run-docker.sh
+      ```
+2. **Executar em Modo Desenvolvimento (Banco H2)**:
 
    ```bash
    ./run-docker.sh dev
    ```
 
-   This will:
-    - Build the application Docker image.
-    - Start the Wallet Service application with the `dev` profile (using H2).
+   Isso irá:
+    - Construir a imagem Docker da aplicação.
+    - Iniciar o serviço Wallet Service com o perfil `dev` (usando H2).
 
-   The application will be available at http://localhost:8080
-   The H2 Console will be available at http://localhost:8080/h2-console
-   H2 Console settings:
+   A aplicação estará disponível em http://localhost:8080  
+   O Console H2 estará disponível em http://localhost:8080/h2-console  
+   Configurações do H2:
     - JDBC URL: `jdbc:h2:mem:walletdb`
     - Username: `sa`
     - Password: `password`
 
-3. **Run in Production Mode (PostgreSQL Database)**:
+3. **Executar em Modo Produção (Banco PostgreSQL)**:
 
     ```bash
    ./run-docker.sh prod
    ```
 
-   This will:
-    - Build the application Docker image.
-    - Start PostgreSQL database.
-    - Start the Wallet Service application with the `prod` profile (connecting to PostgreSQL).
+   Isso irá:
+    - Construir a imagem Docker da aplicação.
+    - Iniciar o banco de dados PostgreSQL.
+    - Iniciar o serviço Wallet Service com o perfil `prod` (conectando ao PostgreSQL).
 
-   The application will be available at http://localhost:8080
+   A aplicação estará disponível em http://localhost:8080
 
-   To connect to the database:
+   Para conectar-se ao banco de dados:
     - Host: `postgres`
     - Port: `5432`
     - Database: `walletdb`
@@ -138,21 +137,21 @@ The application can be easily run using Docker and Docker Compose, which will se
 
 ## OpenAPI
 
-This project uses `SpringDoc OpenAPI` to automatically generate interactive API documentation.
+Este projeto utiliza `SpringDoc OpenAPI` para gerar automaticamente a documentação interativa da API.
 
-- Accessing Swagger UI - Development environment
+- Acessar Swagger UI - Ambiente de desenvolvimento
    ```bash
    http://localhost:8080/swagger-ui/index.html
    ```
-- OpenAPI Specification (JSON)
+- Especificação OpenAPI (JSON)
    ```bash
    http://localhost:8080/v3/api-docs
    ```
-- ⚠️ Important: Swagger UI is disabled by default in production for security reasons.
+- ⚠️ Importante: O Swagger UI está desabilitado por padrão em produção por motivos de segurança.
 
-## API Documentation
+## Documentação da API
 
-### Create Wallet
+### Criar carteira
 
 ```
 POST /api/wallets
@@ -176,7 +175,7 @@ Response (201 Created):
 }
 ```
 
-### Get Current Balance
+### Obter saldo atual
 
 ```
 GET /api/wallets/{walletId}/balance
@@ -191,7 +190,7 @@ Response (200 OK):
 }
 ```
 
-### Get Historical Balance
+### Obter histórico do saldo
 
 ```
 GET /api/wallets/{walletId}/balance/history?timestamp=2025-06-09T00:00:00Z
@@ -206,7 +205,7 @@ Response (200 OK):
 }
 ```
 
-### Deposit Funds
+### Depositar fundos
 
 ```
 POST /api/wallets/{walletId}/deposit
@@ -234,7 +233,7 @@ Response (200 OK):
 }
 ```
 
-### Withdraw Funds
+### Sacar fundos
 
 ```
 POST /api/wallets/{walletId}/withdraw
@@ -262,7 +261,7 @@ Response (200 OK):
 }
 ```
 
-### Transfer Funds
+### Transferir fundos
 
 ```
 POST /api/wallets/transfer
@@ -304,7 +303,7 @@ Response (200 OK):
 ]
 ```
 
-### Get Transaction History
+### Obter histórico de transações
 
 ```
 GET /api/wallets/{walletId}/transactions?page=0&size=20
@@ -347,11 +346,11 @@ Response (200 OK):
 ]
 ```
 
-## Testing
+## Testes
 
-The application includes both unit tests and integration tests to ensure functionality and reliability.
+A aplicação inclui tanto testes unitários quanto testes de integração para garantir funcionalidade e confiabilidade.
 
-### Running Tests
+### Executando Testes
 
 ```bash
 mvn test
@@ -359,115 +358,47 @@ mvn test
 
 This will run all the tests and generate a test report.
 
-### Test Coverage
+### Cobertura de Testes
 
-The tests cover:
-- Service layer logic (unit tests)
-- API endpoints (integration tests)
-- Edge cases and error handling
+Os testes cobrem:
+- Lógica da camada de serviço (unitários);
+- Endpoints da API (integração);
+- Casos de borda e tratamento de erros.
 
-## Design Decisions
+### Stack Tecnológica
 
-### Architecture Overview
-
-The service is designed as a standalone Spring Boot application that can be deployed as a microservice. This architecture was chosen to ensure:
-
-- **High Availability**: The service can be scaled horizontally to handle increased load.
-- **Fault Tolerance**: The service can recover from failures gracefully.
-- **Scalability**: The service can be scaled independently of other components.
-
-### Technology Stack
-
-- **Language**: Java 17.
-- **Framework**: Spring Boot 3.5.0.
-- **Build Tool**: Maven
-- **Database**:
-  - **Development/Testing**: H2 Database.
-  - **Production**: PostgreSQL.
-- **ORM**: Spring Data JPA with Hibernate.
+- **Linguagem**: Java 21
+- **Framework**: Spring Boot 3.4.5
+- **Ferramenta de Build**: Maven
+- **Banco de Dados**:
+    - **Desenvolvimento/Testes**: H2 Database.
+    - **Produção**: PostgreSQL.
+- **ORM**: Spring Data JPA com Hibernate.
 - **API**: Spring Web, SpringDoc OpenAPI 2.7.0.
-- **Testing**: JUnit 5, Mockito, Spring Boot Test.
-- **Containerization**: Docker and Docker Compose.
+- **Testes**: JUnit 5, Mockito, Spring Boot Test.
+- **Containerização**: Docker e Docker Compose.
 
-### Data Model Design
+### Modelo de Dados
 
-The data model consists of two main entities:
+O modelo de dados consiste em duas entidades principais:
 
-- **Wallet Entity**: Represents a user's wallet, containing:
-  - `id` (UUID): Unique identifier for the wallet.
-  - `userId` (Long): Identifier for the associated user.
-  - `balance` (BigDecimal): Current balance of the wallet.
-  - `version` (Long): For optimistic locking to prevent concurrent update issues.
-  - `createdAt` (Instant): Timestamp of wallet creation.
-  - `updatedAt` (Instant): Timestamp of last update.
+- **Wallet (Carteira)**:
+    - `id` (UUID): Identificador único da carteira.
+    - `userId` (Long): Identificador do usuário associado.
+    - `balance` (BigDecimal): Saldo atual da carteira.
+    - `version` (Long): Usado em lock otimista para evitar problemas de concorrência.
+    - `createdAt` (Instant): Data de criação.
+    - `updatedAt` (Instant): Data da última atualização.
 
-- **Transaction Entity**: Represents a single monetary operation, containing:
-  - `id` (UUID): Unique identifier for the transaction.
-  - `walletId` (UUID): Foreign key to the `Wallet` involved in the transaction.
-  - `type` (Enum: DEPOSIT, WITHDRAWAL, TRANSFER_IN, TRANSFER_OUT): Type of operation.
-  - `amount` (BigDecimal): Amount of money involved in the transaction.
-  - `timestamp` (Instant): Timestamp of the transaction.
-  - `status` (Enum: PENDING, COMPLETED, FAILED): Status of the transaction.
-  - `referenceId` (UUID): For linking related transactions (e.g., transfers).
-  - `description` (String): Additional details about the transaction.
-  - `balanceAfter` (BigDecimal): Wallet balance after this transaction (for historical balance queries).
+- **Transaction (Transação)**:
+    - `id` (UUID): Identificador único da transação.
+    - `walletId` (UUID): Chave estrangeira para a carteira.
+    - `type` (Enum: DEPOSIT, WITHDRAWAL, TRANSFER_IN, TRANSFER_OUT): Tipo da operação.
+    - `amount` (BigDecimal): Valor da operação.
+    - `timestamp` (Instant): Momento da transação.
+    - `status` (Enum: PENDING, COMPLETED, FAILED): Status da transação.
+    - `referenceId` (UUID): Para vincular transações relacionadas (ex.: transferências).
+    - `description` (String): Detalhes adicionais.
+    - `balanceAfter` (BigDecimal): Saldo após a operação.
 
-The explicit `Transaction` entity ensures that every single operation that alters a wallet's balance is recorded, providing the necessary audit trail and traceability. Historical balance can be derived by finding the latest transaction before a specific point in time.
-
-### Transactional Integrity and Concurrency
-
-- **ACID Transactions**: All operations that modify wallet balances (deposit, withdraw, transfer) are wrapped in database transactions to ensure Atomicity, Consistency, Isolation, and Durability.
-- **Optimistic Locking**: For concurrent updates to wallet balances, optimistic locking (using a version field in the Wallet entity) is implemented to prevent lost updates.
-- **Idempotency**: API endpoints are designed to be idempotent where possible, especially for operations like deposits, to prevent duplicate processing if a request is retried.
-
-### Error Handling and Validation
-
-- **Custom Exceptions**: Custom exceptions are defined for business-specific errors (e.g., `InsufficientFundsException`, `WalletNotFoundException`).
-- **Global Exception Handler**: A `@ControllerAdvice` handles exceptions globally and returns consistent, meaningful error responses.
-- **Input Validation**: Spring's `@Valid` annotation and JSR 303/380 (Bean Validation) are used for validating incoming request payloads.
-
-### Traceability and Auditing
-
-- **Transaction Entity**: As detailed in the data model, the `Transaction` entity is the primary mechanism for traceability. Every balance change corresponds to a recorded transaction.
-- **Logging**: Comprehensive logging is implemented using SLF4J/Logback to capture key events, request/response details, and errors.
-- **Unique Identifiers**: UUIDs are used for transaction IDs to ensure global uniqueness and ease of tracing across distributed systems.
-
-### Docker Configuration
-
-The application includes Docker configuration for easy deployment and environment consistency:
-
-- **Multi-stage Dockerfile**: Uses a multi-stage build process to create a lightweight and efficient Docker image.
-- **Docker Compose**: Provides a complete development environment with PostgreSQL.
-- **Volume Persistence**: Database data is persisted using Docker volumes.
-- **Environment Variables**: Configuration is managed through environment variables for flexibility.
-
-## Trade-offs and Limitations
-
-### Database Versioning
-
-This implementation uses `ddl-auto=update` in the development environment and `ddl-auto=validate` in production. This ensures that schema changes are applied automatically during development while preventing accidental changes in production. However, the project does not yet adopt a database versioning tool such as Flyway or Liquibase. In a production-grade system, managing schema changes through migration scripts improves traceability, enables rollback strategies, and ensures safe and consistent deployment across environments.
-
-### Database Credentials and Configuration Management
-
-The current configuration includes database credentials and connection details directly within the application property files. This approach, while straightforward for local development, poses a security risk if used in production. A more secure and scalable practice is to externalize sensitive configuration, using environment variables or secret management solutions (e.g., AWS Secrets Manager), ensuring credentials are protected and rotated as needed without requiring code changes.
-
-### Authentication and Authorization
-
-This implementation focuses on the core wallet service logic and does not include authentication and authorization mechanisms. In a real production environment, this service would be protected by an authentication and authorization mechanism (e.g., OAuth2, JWT) provided by an API Gateway or a dedicated identity service.
-
-### Distributed Transactions
-
-The current implementation handles transfers between wallets within the same database transaction. In a fully distributed microservices architecture, a more sophisticated approach like the Saga pattern might be needed to handle distributed transactions across multiple services.
-
-### Caching
-
-The current implementation does not include a caching layer. For very high read loads on current balances, a caching layer (e.g., Redis) could be introduced. However, given the critical nature of monetary data, cache invalidation strategies would need careful design.
-
-### Monitoring and Alerting
-
-The service does not include built-in monitoring and alerting capabilities. In a production environment, it would be integrated with monitoring tools (e.g., Prometheus, Grafana) to track performance metrics, health, and generate alerts on anomalies.
-
----
-
-This wallet service implementation provides a solid foundation for managing user funds with high reliability and traceability. It can be extended and enhanced based on specific business requirements and operational needs.
-
+Cada transação é registrada explicitamente, garantindo trilha de auditoria e rastreabilidade. O saldo histórico pode ser calculado consultando a última transação antes de determinado instante.
