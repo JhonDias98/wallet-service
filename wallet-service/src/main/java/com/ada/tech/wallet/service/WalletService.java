@@ -7,7 +7,6 @@ import com.ada.tech.wallet.dto.TransactionResponse;
 import com.ada.tech.wallet.dto.TransferRequest;
 import com.ada.tech.wallet.dto.WalletResponse;
 import com.ada.tech.wallet.dto.WithdrawalRequest;
-import com.wallet.service.dto.*;
 
 import java.time.Instant;
 import java.util.List;

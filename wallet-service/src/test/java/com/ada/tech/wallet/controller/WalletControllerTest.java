@@ -11,7 +11,6 @@ import com.ada.tech.wallet.model.TransactionStatus;
 import com.ada.tech.wallet.model.TransactionType;
 import com.ada.tech.wallet.service.WalletService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wallet.service.dto.*;
 import com.ada.tech.wallet.exception.InsufficientFundsException;
 import com.ada.tech.wallet.exception.WalletNotFoundException;
 import org.junit.jupiter.api.Test;
