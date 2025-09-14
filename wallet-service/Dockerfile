@@ -1,19 +1,17 @@
 FROM maven:3.9.6-eclipse-temurin-21 AS build
-WORKDIR /app
+WORKDIR /build
 
-COPY pom.xml .
+COPY pom.xml ./pom.xml
+COPY wallet-service/pom.xml wallet-service/pom.xml
 
-RUN mvn dependency:go-offline -B
+RUN mvn -q -B -DskipTests -f wallet-service/pom.xml dependency:go-offline
 
-COPY src ./src
+COPY wallet-service/src wallet-service/src
 
-RUN mvn package -DskipTests
+RUN mvn -q -B -DskipTests -f wallet-service/pom.xml package
 
 FROM amazoncorretto:21-alpine-jdk
 WORKDIR /app
-
-COPY --from=build /app/target/wallet-service-1.0.0-SNAPSHOT.jar app.jar
-
+COPY --from=build /build/wallet-service/target/wallet-service-1.0.0-SNAPSHOT.jar app.jar
 EXPOSE 8080
-
 ENTRYPOINT ["java", "-jar", "app.jar"]
