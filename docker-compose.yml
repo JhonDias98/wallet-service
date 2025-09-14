@@ -1,10 +1,10 @@
 version: '3.8'
 
 services:
-  app:
+  wallet-service:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: wallet-service/Dockerfile
     image: wallet-service:latest
     container_name: wallet-service
     ports:
@@ -16,6 +16,24 @@ services:
       - SPRING_DATASOURCE_PASSWORD=postgres
     depends_on:
       - postgres
+      - rabbitmq
+    networks:
+      - wallet-network
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    image: notification-service:latest
+    container_name: notification-service
+    ports:
+      - "8081:8081"
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+    depends_on:
+      - rabbitmq
     networks:
       - wallet-network
     restart: unless-stopped
@@ -31,6 +49,19 @@ services:
       - POSTGRES_PASSWORD=postgres
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    networks:
+      - wallet-network
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: wallet-rabbit
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=test
+      - RABBITMQ_DEFAULT_PASS=test
     networks:
       - wallet-network
     restart: unless-stopped

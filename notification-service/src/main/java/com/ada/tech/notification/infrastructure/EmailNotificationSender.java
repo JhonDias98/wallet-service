@@ -1,0 +1,16 @@
+package com.ada.tech.notification.infrastructure;
+
+import com.ada.tech.notification.application.NotificationSender;
+import com.ada.tech.notification.domain.TransactionEvent;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+public class EmailNotificationSender implements NotificationSender {
+
+    @Override
+    public void send(TransactionEvent event) {
+        log.info("Sending email for transaction {} to user {}", event.transactionId(), event.userId());
+    }
+}
