@@ -17,6 +17,7 @@ SERVICES=(
     "notification-service"
     "payment-service"
     "wallet-service"
+    "user-service"
 )
 
 echo "=== Teste 1: Compilação de Todos os Serviços ==="
@@ -26,7 +27,7 @@ for service in "${SERVICES[@]}"; do
     echo "Testando compilação do $service..."
     cd services/$service
     
-    if mvn clean compile -q; then
+    if mvn clean package -DskipTests; then
         echo "✓ $service: Compilação OK"
     else
         echo "✗ $service: Erro na compilação"
@@ -49,7 +50,7 @@ echo "=== Teste 2: Verificação de Estrutura de Arquivos ==="
 # Verificar se todos os arquivos essenciais existem
 REQUIRED_FILES=(
     "docker-compose.yml"
-    "docker-compose-dev.yml"
+    "docker-compose-prod.yml"
 )
 
 for file in "${REQUIRED_FILES[@]}"; do

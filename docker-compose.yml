@@ -1,5 +1,19 @@
 version: '3.8'
 
+x-rabbit-env: &rabbit_env
+  SPRING_RABBITMQ_HOST: rabbitmq
+  SPRING_RABBITMQ_PORT: 5672
+  SPRING_RABBITMQ_USERNAME: test
+  SPRING_RABBITMQ_PASSWORD: test
+
+x-spring-common: &spring_common
+  depends_on:
+    rabbitmq:
+      condition: service_healthy
+  networks:
+    - wallet-network-dev
+  restart: unless-stopped
+
 services:
   wallet-service:
     build:
@@ -10,17 +24,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - SPRING_RABBITMQ_HOST=rabbitmq
-      - SPRING_RABBITMQ_PORT=5672
-      - SPRING_RABBITMQ_USERNAME=test
-      - SPRING_RABBITMQ_PASSWORD=test
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - wallet-network-dev
-    restart: unless-stopped
+      <<: *rabbit_env
+      SPRING_PROFILES_ACTIVE: dev
+    <<: *spring_common
 
   notification-service:
     build:
@@ -31,17 +37,9 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - SPRING_RABBITMQ_HOST=rabbitmq
-      - SPRING_RABBITMQ_PORT=5672
-      - SPRING_RABBITMQ_USERNAME=test
-      - SPRING_RABBITMQ_PASSWORD=test
-      - MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=false
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - wallet-network-dev
-    restart: unless-stopped
+      <<: *rabbit_env
+      MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED: "false"
+    <<: *spring_common
 
   payment-service:
     build:
@@ -52,17 +50,23 @@ services:
     ports:
       - "8082:8082"
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - SPRING_RABBITMQ_HOST=rabbitmq
-      - SPRING_RABBITMQ_PORT=5672
-      - SPRING_RABBITMQ_USERNAME=test
-      - SPRING_RABBITMQ_PASSWORD=test
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - wallet-network-dev
-    restart: unless-stopped
+      <<: *rabbit_env
+      SPRING_PROFILES_ACTIVE: dev
+    <<: *spring_common
+
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    image: user-service:latest
+    container_name: user-service-dev
+    ports:
+      - "8083:8083"
+    environment:
+      <<: *rabbit_env
+      SPRING_PROFILES_ACTIVE: dev
+    <<: *spring_common
+
 
   rabbitmq:
     image: rabbitmq:3.13-management
@@ -71,8 +75,8 @@ services:
       - "5672:5672"
       - "15672:15672"
     environment:
-      - RABBITMQ_DEFAULT_USER=test
-      - RABBITMQ_DEFAULT_PASS=test
+      RABBITMQ_DEFAULT_USER: test
+      RABBITMQ_DEFAULT_PASS: test
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 5s
